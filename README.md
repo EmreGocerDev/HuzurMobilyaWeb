@@ -1,6 +1,7 @@
 # Huzur Mobilya Web
-
-![Huzur Mobilya Logo](public/logo.png)
+<div style="text-align: center;">
+  <img src="public/logo.png" alt="Huzur Mobilya Logo">
+</div>
 
 Huzur Mobilya için hazırlanmış modern bir e-ticaret web uygulaması. Ürün listeleme, ürün detay, sepet, sipariş oluşturma, favoriler, üyelik ve hesap sayfaları ile birlikte satış odaklı bir vitrin deneyimi sunar.
 
