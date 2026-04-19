@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #fdf6ed;
+  --color-primary-100: #f8e6cf;
+  --color-primary-200: #f0c99b;
+  --color-primary-300: #e7a862;
+  --color-primary-400: #e0903e;
+  --color-primary-500: #d87528;
+  --color-primary-600: #bf5a1e;
+  --color-primary-700: #9f421c;
+  --color-primary-800: #82351d;
+  --color-primary-900: #6b2d1b;
+  --color-primary-950: #3d150b;
+
+  --color-secondary-50: #f4f7f7;
+  --color-secondary-100: #e2eaeb;
+  --color-secondary-200: #c8d6d9;
+  --color-secondary-300: #a2b8be;
+  --color-secondary-400: #74939b;
+  --color-secondary-500: #597880;
+  --color-secondary-600: #4d646d;
+  --color-secondary-700: #43545b;
+  --color-secondary-800: #3c484e;
+  --color-secondary-900: #363e43;
+  --color-secondary-950: #21282c;
+
+  --color-accent-50: #fef9ec;
+  --color-accent-100: #fcedc9;
+  --color-accent-200: #f9d98f;
+  --color-accent-300: #f5bf54;
+  --color-accent-400: #f3a92d;
+  --color-accent-500: #ec8914;
+  --color-accent-600: #d1650e;
+  --color-accent-700: #ad4710;
+  --color-accent-800: #8d3713;
+  --color-accent-900: #742e13;
+  --color-accent-950: #431506;
+
+  --font-sans: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9f421c;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b2d1b;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid #d87528;
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* Product card hover effect */
+.product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Badge pulse */
+.badge-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Toast notification */
+.toast-enter {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+/* Image zoom on hover */
+.img-zoom {
+  transition: transform 0.5s ease;
+}
+
+.img-zoom:hover {
+  transform: scale(1.05);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #d87528, #bf5a1e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
