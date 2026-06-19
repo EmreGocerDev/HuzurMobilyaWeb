@@ -186,6 +186,7 @@
           full_name: string;
           email: string | null;
           phone: string | null;
+          password_hash: string | null;
           address: string | null;
           city: string | null;
           tax_number: string | null;
@@ -202,6 +203,7 @@
           full_name: string;
           email?: string | null;
           phone?: string | null;
+          password_hash?: string | null;
           address?: string | null;
           city?: string | null;
           tax_number?: string | null;
@@ -218,6 +220,7 @@
           full_name?: string;
           email?: string | null;
           phone?: string | null;
+          password_hash?: string | null;
           address?: string | null;
           city?: string | null;
           tax_number?: string | null;
@@ -229,7 +232,7 @@
           created_at?: string;
           updated_at?: string;
         };
-      Relationships: [];};
+      Relationships: []};
       orders: {
         Row: {
           id: string;
@@ -429,6 +432,72 @@
           created_at?: string;
         };
       Relationships: [];};
+      chat_sessions: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          customer_name: string;
+          customer_email: string | null;
+          customer_phone: string | null;
+          status: 'open' | 'closed' | 'waiting';
+          unread_admin: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id?: string | null;
+          customer_name: string;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          status?: 'open' | 'closed' | 'waiting';
+          unread_admin?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string | null;
+          customer_name?: string;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          status?: 'open' | 'closed' | 'waiting';
+          unread_admin?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          session_id: string;
+          sender_type: 'customer' | 'admin';
+          sender_name: string;
+          message: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          sender_type: 'customer' | 'admin';
+          sender_name: string;
+          message: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          sender_type?: 'customer' | 'admin';
+          sender_name?: string;
+          message?: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

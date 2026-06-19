@@ -185,10 +185,10 @@ export default function ChatWidget() {
         is_read: false,
       });
 
-      // Update session updated_at + status
+      // Update session status
       await supabase
         .from('chat_sessions')
-        .update({ status: 'open', unread_admin: supabase.rpc('increment_unread', { session_id: sessionId }) })
+        .update({ status: 'open' })
         .eq('id', sessionId);
     } catch {
       setInputText(text); // restore on error
