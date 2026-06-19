@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Phone, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { verifyPassword } from '@/lib/crypto';
 import { useAuthStore } from '@/store/auth';
 import type { Customer } from '@/types';
 import Toast from '@/components/ui/Toast';
@@ -16,6 +17,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('phone');
@@ -26,6 +28,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      if (!password) {
+        setToast({ message: 'Lütfen şifrenizi girin', type: 'error' });
+        setLoading(false);
+        return;
+      }
+
       let query = supabase.from('customers').select('*');
 
       if (loginMethod === 'email') {
@@ -34,14 +42,14 @@ export default function LoginPage() {
           setLoading(false);
           return;
         }
-        query = query.eq('email', email);
+        query = query.eq('email', email.toLowerCase().trim());
       } else {
         if (!phone) {
           setToast({ message: 'Lütfen telefon numaranızı girin', type: 'error' });
           setLoading(false);
           return;
         }
-        query = query.eq('phone', phone);
+        query = query.eq('phone', phone.trim());
       }
 
       const { data, error } = await query.single();
@@ -52,8 +60,21 @@ export default function LoginPage() {
         return;
       }
 
+      if (!data.password_hash) {
+        setToast({ message: 'Bu hesap için şifre tanımlanmamış. Lütfen yönetici ile iletişime geçin.', type: 'error' });
+        setLoading(false);
+        return;
+      }
+
+      const passwordValid = await verifyPassword(password, data.password_hash);
+      if (!passwordValid) {
+        setToast({ message: 'Şifre hatalı. Lütfen tekrar deneyin.', type: 'error' });
+        setLoading(false);
+        return;
+      }
+
       login(data as Customer);
-      setToast({ message: 'Giriş başarılı!', type: 'success' });
+      setToast({ message: 'Giriş başarılı! Yönlendiriliyorsunuz...', type: 'success' });
       setTimeout(() => router.push('/hesabim'), 1000);
     } catch {
       setToast({ message: 'Bir hata oluştu. Lütfen tekrar deneyin.', type: 'error' });
@@ -107,7 +128,8 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ornek@email.com"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0"
+                    autoComplete="email"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
                   />
                 </div>
               </div>
@@ -115,22 +137,47 @@ export default function LoginPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">+90</span>
+                  <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <span className="absolute left-9 top-1/2 -translate-y-1/2 text-gray-400 text-sm">+90</span>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="555 000 0000"
-                    className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0"
+                    autoComplete="tel"
+                    className="w-full pl-16 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
                   />
                 </div>
               </div>
             )}
 
+            {/* Şifre */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50 mt-2"
             >
               {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
             </button>

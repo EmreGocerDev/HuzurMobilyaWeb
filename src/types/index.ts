@@ -114,6 +114,7 @@ export interface Customer {
   full_name: string;
   email: string | null;
   phone: string | null;
+  password_hash: string | null;
   address: string | null;
   city: string | null;
   tax_number: string | null;

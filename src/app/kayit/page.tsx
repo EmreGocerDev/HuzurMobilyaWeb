@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Mail, Phone, MapPin } from 'lucide-react';
+import { User, Mail, Phone, Eye, EyeOff, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { hashPassword } from '@/lib/crypto';
 import { useAuthStore } from '@/store/auth';
 import type { Customer } from '@/types';
 import Toast from '@/components/ui/Toast';
@@ -18,9 +19,13 @@ export default function RegisterPage() {
     fullName: '',
     email: '',
     phone: '',
+    password: '',
+    confirmPassword: '',
     address: '',
     city: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -33,6 +38,16 @@ export default function RegisterPage() {
 
     if (!form.fullName || !form.phone) {
       setToast({ message: 'Ad Soyad ve Telefon alanları zorunludur', type: 'error' });
+      return;
+    }
+
+    if (!form.password || form.password.length < 6) {
+      setToast({ message: 'Şifre en az 6 karakter olmalıdır', type: 'error' });
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setToast({ message: 'Şifreler eşleşmiyor', type: 'error' });
       return;
     }
 
@@ -52,12 +67,15 @@ export default function RegisterPage() {
         return;
       }
 
+      const password_hash = await hashPassword(form.password);
+
       const { data, error } = await supabase
         .from('customers')
         .insert({
           full_name: form.fullName,
           email: form.email || null,
           phone: form.phone,
+          password_hash,
           address: form.address || null,
           city: form.city || null,
         })
@@ -161,12 +179,57 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Şifre *</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="En az 6 karakter"
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
+                />
+                <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Şifre Tekrar *</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  name="confirmPassword"
+                  type={showConfirm ? 'text' : 'password'}
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Şifreyi tekrar girin"
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
+                />
+                <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
-              {loading ? 'Kayıt Yapılıyor...' : 'Kayıt Ol'}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Kaydediliyor...
+                </>
+              ) : (
+                'Kayıt Ol'
+              )}
             </button>
           </form>
 

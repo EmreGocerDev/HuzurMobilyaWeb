@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { SlidersHorizontal, Grid3X3, List, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { SlidersHorizontal, Grid3X3, List, ChevronLeft, ChevronRight, X, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Product, Category } from '@/types';
 import ProductCard from '@/components/product/ProductCard';
@@ -10,6 +10,16 @@ import ProductSkeleton from '@/components/ui/ProductSkeleton';
 import { formatPrice } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 12;
+
+/** URL params'ı değiştirmeden önce girişi bekletir */
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
 function ProductListingContent() {
   const searchParams = useSearchParams();
@@ -22,7 +32,7 @@ function ProductListingContent() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Filter states
+  // URL parametrelerinden oku
   const currentCategory = searchParams.get('kategori') || '';
   const currentSearch = searchParams.get('arama') || '';
   const currentSort = searchParams.get('siralama') || 'yeni';
@@ -31,6 +41,30 @@ function ProductListingContent() {
   const currentMaxPrice = searchParams.get('max_fiyat') || '';
   const currentMaterial = searchParams.get('malzeme') || '';
   const currentColor = searchParams.get('renk') || '';
+
+  // Yerel (kontrollü) input state'leri — bunlar debounce ile URL'e yansır
+  const [localMinPrice, setLocalMinPrice] = useState(currentMinPrice);
+  const [localMaxPrice, setLocalMaxPrice] = useState(currentMaxPrice);
+  const [localMaterial, setLocalMaterial] = useState(currentMaterial);
+  const [localColor, setLocalColor] = useState(currentColor);
+
+  // URL değişince lokal state'leri senkronize et (harici navigasyonlarda)
+  const prevSearch = useRef(currentSearch);
+  useEffect(() => {
+    if (currentSearch !== prevSearch.current) {
+      prevSearch.current = currentSearch;
+    }
+    setLocalMinPrice(currentMinPrice);
+    setLocalMaxPrice(currentMaxPrice);
+    setLocalMaterial(currentMaterial);
+    setLocalColor(currentColor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
+
+  const debouncedMinPrice = useDebounce(localMinPrice, 600);
+  const debouncedMaxPrice = useDebounce(localMaxPrice, 600);
+  const debouncedMaterial = useDebounce(localMaterial, 600);
+  const debouncedColor = useDebounce(localColor, 600);
 
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
@@ -43,10 +77,35 @@ function ProductListingContent() {
         }
       });
       if (!updates.sayfa) params.set('sayfa', '1');
-      router.push(`/urunler?${params.toString()}`);
+      router.push(`/urunler?${params.toString()}`, { scroll: false });
     },
     [searchParams, router]
   );
+
+  // Debounce'lu değerler değişince URL'yi güncelle
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    let changed = false;
+
+    const sync = (key: string, val: string) => {
+      const prev = params.get(key) || '';
+      if (val !== prev) {
+        if (val) params.set(key, val); else params.delete(key);
+        changed = true;
+      }
+    };
+
+    sync('min_fiyat', debouncedMinPrice);
+    sync('max_fiyat', debouncedMaxPrice);
+    sync('malzeme', debouncedMaterial);
+    sync('renk', debouncedColor);
+
+    if (changed) {
+      params.set('sayfa', '1');
+      router.push(`/urunler?${params.toString()}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedMinPrice, debouncedMaxPrice, debouncedMaterial, debouncedColor]);
 
   useEffect(() => {
     supabase
@@ -138,6 +197,10 @@ function ProductListingContent() {
   const activeFilterCount = [currentCategory, currentMinPrice, currentMaxPrice, currentMaterial, currentColor].filter(Boolean).length;
 
   const clearAllFilters = () => {
+    setLocalMinPrice('');
+    setLocalMaxPrice('');
+    setLocalMaterial('');
+    setLocalColor('');
     router.push('/urunler');
   };
 
@@ -204,16 +267,16 @@ function ProductListingContent() {
                 <input
                   type="number"
                   placeholder="Min"
-                  value={currentMinPrice}
-                  onChange={(e) => updateParams({ min_fiyat: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0"
+                  value={localMinPrice}
+                  onChange={(e) => setLocalMinPrice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
                 />
                 <input
                   type="number"
                   placeholder="Max"
-                  value={currentMaxPrice}
-                  onChange={(e) => updateParams({ max_fiyat: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0"
+                  value={localMaxPrice}
+                  onChange={(e) => setLocalMaxPrice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
                 />
               </div>
             </div>
@@ -221,25 +284,31 @@ function ProductListingContent() {
             {/* Material */}
             <div>
               <h3 className="text-sm font-semibold text-gray-800 mb-3">Malzeme</h3>
-              <input
-                type="text"
-                placeholder="Örn: Kadife, Ahşap..."
-                value={currentMaterial}
-                onChange={(e) => updateParams({ malzeme: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0"
-              />
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Örn: Kadife, Ahşap..."
+                  value={localMaterial}
+                  onChange={(e) => setLocalMaterial(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Color */}
             <div>
               <h3 className="text-sm font-semibold text-gray-800 mb-3">Renk</h3>
-              <input
-                type="text"
-                placeholder="Örn: Gri, Beyaz..."
-                value={currentColor}
-                onChange={(e) => updateParams({ renk: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0"
-              />
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Örn: Gri, Beyaz..."
+                  value={localColor}
+                  onChange={(e) => setLocalColor(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 focus:ring-0 focus:outline-none"
+                />
+              </div>
             </div>
           </div>
         </aside>
@@ -446,17 +515,17 @@ function ProductListingContent() {
               <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Fiyat Aralığı</h3>
                 <div className="flex gap-2">
-                  <input type="number" placeholder="Min" value={currentMinPrice} onChange={(e) => updateParams({ min_fiyat: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-                  <input type="number" placeholder="Max" value={currentMaxPrice} onChange={(e) => updateParams({ max_fiyat: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  <input type="number" placeholder="Min" value={localMinPrice} onChange={(e) => setLocalMinPrice(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  <input type="number" placeholder="Max" value={localMaxPrice} onChange={(e) => setLocalMaxPrice(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
                 </div>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Malzeme</h3>
-                <input type="text" placeholder="Örn: Kadife" value={currentMaterial} onChange={(e) => updateParams({ malzeme: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                <input type="text" placeholder="Örn: Kadife" value={localMaterial} onChange={(e) => setLocalMaterial(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Renk</h3>
-                <input type="text" placeholder="Örn: Gri" value={currentColor} onChange={(e) => updateParams({ renk: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                <input type="text" placeholder="Örn: Gri" value={localColor} onChange={(e) => setLocalColor(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </div>
               <button onClick={() => { clearAllFilters(); setFiltersOpen(false); }} className="w-full py-3 bg-red-50 text-red-600 font-medium rounded-xl text-sm">
                 Tüm Filtreleri Temizle
